@@ -102,47 +102,55 @@ const RestTimer = () => {
 
     return (
         <div className="fade-in">
-            <div className="card" style={{ textAlign: 'center', padding: '2.5rem 1.5rem 1.5rem 1.5rem' }}>
-                <div style={{ color: 'var(--text-dim)', textTransform: 'uppercase', fontSize: '0.9rem', marginBottom: '1rem', fontWeight: 'bold' }}>
+            <div className="card" style={{ textAlign: 'center', padding: '1.5rem', position: 'relative' }}>
+                {/* Compact Sound Toggle */}
+                <button
+                    onClick={() => setSoundEnabled(!soundEnabled)}
+                    style={{
+                        position: 'absolute',
+                        top: '1rem',
+                        right: '1rem',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '0.5rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: soundEnabled ? 'var(--accent)' : 'var(--text-dim)',
+                        transition: '0.2s',
+                        zIndex: 10
+                    }}
+                    title={soundEnabled ? 'Mute Sound' : 'Unmute Sound'}
+                >
+                    {soundEnabled ? (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                        </svg>
+                    ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+                            <path d="M11 5L6 9H2V15H6L11 19V5Z"></path>
+                            <line x1="23" y1="9" x2="17" y2="15"></line>
+                            <line x1="17" y1="9" x2="23" y2="15"></line>
+                        </svg>
+                    )}
+                </button>
+
+                <div style={{ color: 'var(--text-dim)', textTransform: 'uppercase', fontSize: '0.8rem', marginBottom: '0.5rem', fontWeight: 'bold' }}>
                     {mode === 'stopwatch' ? 'Resting' : 'Countdown'}
                 </div>
-                <div style={{ fontSize: '5rem', fontWeight: '800', fontFamily: 'monospace', color: isActive && mode === 'timer' ? 'var(--accent)' : 'white' }}>
+                <div style={{ fontSize: '4.5rem', fontWeight: '800', fontFamily: 'monospace', color: isActive && mode === 'timer' ? 'var(--accent)' : 'white', lineHeight: '1' }}>
                     {formatTime(time)}
                 </div>
 
-                <div className="flex-row" style={{ marginTop: '1.5rem' }}>
+                <div className="flex-row" style={{ marginTop: '1rem' }}>
                     {!isActive ? (
-                        <button className="btn" onClick={() => setIsActive(true)}>Start</button>
+                        <button className="btn" style={{ padding: '0.6rem 2rem' }} onClick={() => setIsActive(true)}>Start</button>
                     ) : (
-                        <button className="btn btn-outline" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }} onClick={() => setIsActive(false)}>Pause</button>
+                        <button className="btn btn-outline" style={{ borderColor: 'var(--danger)', color: 'var(--danger)', padding: '0.6rem 2rem' }} onClick={() => setIsActive(false)}>Pause</button>
                     )}
                     <button className="btn btn-ghost" onClick={reset}>Reset</button>
-                </div>
-
-                <div style={{ marginTop: '2.4rem', borderTop: '1px solid #222', paddingTop: '1.5rem' }}>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '1px', marginBottom: '1.2rem' }}>
-                        Alert Settings
-                    </div>
-                    <div className="flex-row" style={{ justifyContent: 'center' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 'bold' }}>Sound Alert</span>
-                            <button
-                                className={`btn btn-outline ${soundEnabled ? '' : 'inactive'}`}
-                                style={{
-                                    width: '100px',
-                                    height: '45px',
-                                    fontSize: '0.9rem',
-                                    background: soundEnabled ? 'var(--accent)' : 'transparent',
-                                    color: soundEnabled ? 'black' : 'var(--text-dim)',
-                                    border: soundEnabled ? 'none' : '1px solid var(--border)',
-                                    fontWeight: '800'
-                                }}
-                                onClick={() => setSoundEnabled(!soundEnabled)}
-                            >
-                                {soundEnabled ? 'ON' : 'OFF'}
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -191,12 +199,12 @@ const RestTimer = () => {
                 )}
             </div>
 
-            <div className="input-label">Quick Presets</div>
-            <div className="grid-2" style={{ marginBottom: '1.5rem' }}>
-                <button className="btn btn-outline" onClick={() => startTimer(60)}>1:00</button>
-                <button className="btn btn-outline" onClick={() => startTimer(90)}>1:30</button>
-                <button className="btn btn-outline" onClick={() => startTimer(120)}>2:00</button>
-                <button className="btn btn-outline" onClick={() => startTimer(180)}>3:00</button>
+            <div className="input-label" style={{ marginTop: '1rem' }}>Quick Presets</div>
+            <div className="grid-2" style={{ marginBottom: '1rem' }}>
+                <button className="btn btn-outline" style={{ padding: '0.6rem' }} onClick={() => startTimer(60)}>1:00</button>
+                <button className="btn btn-outline" style={{ padding: '0.6rem' }} onClick={() => startTimer(90)}>1:30</button>
+                <button className="btn btn-outline" style={{ padding: '0.6rem' }} onClick={() => startTimer(120)}>2:00</button>
+                <button className="btn btn-outline" style={{ padding: '0.6rem' }} onClick={() => startTimer(180)}>3:00</button>
             </div>
         </div>
     );
