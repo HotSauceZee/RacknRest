@@ -35,7 +35,12 @@ function App() {
       </header>
 
       <main>
-        {activeTab === 'plates' ? <PlateCalculator /> : <RestTimer />}
+        <div style={{ display: activeTab === 'plates' ? 'block' : 'none' }}>
+          <PlateCalculator />
+        </div>
+        <div style={{ display: activeTab === 'timer' ? 'block' : 'none' }}>
+          <RestTimer />
+        </div>
       </main>
 
     </div>
