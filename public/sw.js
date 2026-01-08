@@ -1,4 +1,4 @@
-const CACHE_NAME = 'plate-timer-v2';
+const CACHE_NAME = 'plate-timer-v3';
 const ASSETS = [
   './',
   './index.html',
