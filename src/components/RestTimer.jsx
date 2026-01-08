@@ -3,13 +3,11 @@ import React, { useState, useEffect, useRef } from 'react';
 const RestTimer = () => {
     // Load settings from localStorage
     const savedSound = localStorage.getItem('timer-sound') !== 'false'; // Default to true
-    const savedVibrate = localStorage.getItem('timer-vibrate') !== 'false'; // Default to true
 
     const [time, setTime] = useState(0); // in seconds
     const [isActive, setIsActive] = useState(false);
     const [mode, setMode] = useState('stopwatch'); // 'stopwatch' or 'timer'
     const [soundEnabled, setSoundEnabled] = useState(savedSound);
-    const [vibrateEnabled, setVibrateEnabled] = useState(savedVibrate);
     const timerRef = useRef(null);
 
     const [customMins, setCustomMins] = useState('');
@@ -19,9 +17,6 @@ const RestTimer = () => {
         localStorage.setItem('timer-sound', soundEnabled);
     }, [soundEnabled]);
 
-    useEffect(() => {
-        localStorage.setItem('timer-vibrate', vibrateEnabled);
-    }, [vibrateEnabled]);
 
     useEffect(() => {
         if (isActive) {
@@ -63,10 +58,6 @@ const RestTimer = () => {
             } catch (e) {
                 console.log('Audio not supported', e);
             }
-        }
-
-        if (vibrateEnabled && 'vibrate' in navigator) {
-            navigator.vibrate([200, 100, 200]);
         }
     };
 
@@ -120,39 +111,23 @@ const RestTimer = () => {
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '1px', marginBottom: '1.2rem' }}>
                         Alert Settings
                     </div>
-                    <div className="flex-row" style={{ justifyContent: 'center', gap: '2rem' }}>
+                    <div className="flex-row" style={{ justifyContent: 'center' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 'bold' }}>Sound</span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 'bold' }}>Sound Alert</span>
                             <button
                                 className={`btn btn-outline ${soundEnabled ? '' : 'inactive'}`}
                                 style={{
-                                    width: '60px',
-                                    height: '40px',
-                                    fontSize: '0.8rem',
+                                    width: '100px',
+                                    height: '45px',
+                                    fontSize: '0.9rem',
                                     background: soundEnabled ? 'var(--accent)' : 'transparent',
                                     color: soundEnabled ? 'black' : 'var(--text-dim)',
-                                    border: soundEnabled ? 'none' : '1px solid var(--border)'
+                                    border: soundEnabled ? 'none' : '1px solid var(--border)',
+                                    fontWeight: '800'
                                 }}
                                 onClick={() => setSoundEnabled(!soundEnabled)}
                             >
                                 {soundEnabled ? 'ON' : 'OFF'}
-                            </button>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 'bold' }}>Vibrate</span>
-                            <button
-                                className={`btn btn-outline ${vibrateEnabled ? '' : 'inactive'}`}
-                                style={{
-                                    width: '60px',
-                                    height: '40px',
-                                    fontSize: '0.8rem',
-                                    background: vibrateEnabled ? 'var(--accent)' : 'transparent',
-                                    color: vibrateEnabled ? 'black' : 'var(--text-dim)',
-                                    border: vibrateEnabled ? 'none' : '1px solid var(--border)'
-                                }}
-                                onClick={() => setVibrateEnabled(!vibrateEnabled)}
-                            >
-                                {vibrateEnabled ? 'ON' : 'OFF'}
                             </button>
                         </div>
                     </div>
