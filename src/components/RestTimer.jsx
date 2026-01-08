@@ -176,7 +176,22 @@ const RestTimer = () => {
                         />
                     </div>
                 </div>
-                <button className="btn btn-outline" onClick={handleCustomSet}>Set Custom duration</button>
+                <button
+                    className={`btn ${customMins || customSecs ? '' : 'btn-outline'}`}
+                    style={{
+                        marginTop: '0.5rem',
+                        width: '100%',
+                        background: customMins || customSecs ? 'var(--accent)' : 'transparent',
+                        color: customMins || customSecs ? 'black' : 'var(--text-dim)',
+                        borderColor: customMins || customSecs ? 'var(--accent)' : '#333',
+                        fontWeight: '800',
+                        opacity: customMins || customSecs ? 1 : 0.5,
+                        transition: '0.3s'
+                    }}
+                    onClick={handleCustomSet}
+                >
+                    {customMins || customSecs ? 'START TIMER ▶' : 'Set Custom duration'}
+                </button>
 
                 {recentTimes.length > 0 && (
                     <div style={{ marginTop: '1.5rem', borderTop: '1px solid #222', paddingTop: '1rem' }}>
