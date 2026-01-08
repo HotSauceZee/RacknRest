@@ -2,7 +2,8 @@ const CACHE_NAME = 'plate-timer-v1';
 const ASSETS = [
   './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './vite.svg'
 ];
 
 self.addEventListener('install', (event) => {
