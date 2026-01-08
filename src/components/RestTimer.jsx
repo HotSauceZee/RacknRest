@@ -8,6 +8,10 @@ const RestTimer = () => {
     const [isActive, setIsActive] = useState(false);
     const [mode, setMode] = useState('stopwatch'); // 'stopwatch' or 'timer'
     const [soundEnabled, setSoundEnabled] = useState(savedSound);
+    const [recentTimes, setRecentTimes] = useState(() => {
+        const saved = localStorage.getItem('timer-recents');
+        return saved ? JSON.parse(saved) : [];
+    });
     const timerRef = useRef(null);
 
     const [customMins, setCustomMins] = useState('');
@@ -77,6 +81,14 @@ const RestTimer = () => {
         const totalSeconds = (Number(customMins) * 60) + Number(customSecs);
         if (totalSeconds > 0) {
             startTimer(totalSeconds);
+
+            // Update Recent Times
+            setRecentTimes(prev => {
+                const newRecents = [totalSeconds, ...prev.filter(t => t !== totalSeconds)].slice(0, 3);
+                localStorage.setItem('timer-recents', JSON.stringify(newRecents));
+                return newRecents;
+            });
+
             setCustomMins('');
             setCustomSecs('');
         }
@@ -157,6 +169,26 @@ const RestTimer = () => {
                     </div>
                 </div>
                 <button className="btn btn-outline" onClick={handleCustomSet}>Set Custom duration</button>
+
+                {recentTimes.length > 0 && (
+                    <div style={{ marginTop: '1.5rem', borderTop: '1px solid #222', paddingTop: '1rem' }}>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '0.8rem', letterSpacing: '1px' }}>
+                            Recent
+                        </div>
+                        <div className="flex-row" style={{ justifyContent: 'center', gap: '0.5rem' }}>
+                            {recentTimes.map((t, i) => (
+                                <button
+                                    key={i}
+                                    className="btn btn-ghost"
+                                    style={{ fontSize: '0.85rem', padding: '0.5rem 0.8rem', background: '#111', border: '1px solid #222' }}
+                                    onClick={() => startTimer(t)}
+                                >
+                                    {formatTime(t)}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className="input-label">Quick Presets</div>
