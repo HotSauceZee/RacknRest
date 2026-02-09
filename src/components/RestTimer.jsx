@@ -1,49 +1,52 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+
+const SOUND_KEY = 'timer-sound';
+const RECENTS_KEY = 'timer-recents';
+const SESSION_KEY = 'timer-session';
+const LAST_DURATION_KEY = 'timer-last-duration';
 
 const RestTimer = () => {
-    // Load settings from localStorage
-    const savedSound = localStorage.getItem('timer-sound') !== 'false'; // Default to true
+    const savedSound = localStorage.getItem(SOUND_KEY) !== 'false';
 
     const [time, setTime] = useState(0); // in seconds
     const [isActive, setIsActive] = useState(false);
     const [mode, setMode] = useState('stopwatch'); // 'stopwatch' or 'timer'
     const [soundEnabled, setSoundEnabled] = useState(savedSound);
     const [recentTimes, setRecentTimes] = useState(() => {
-        const saved = localStorage.getItem('timer-recents');
-        return saved ? JSON.parse(saved) : [];
+        try {
+            const saved = localStorage.getItem(RECENTS_KEY);
+            return saved ? JSON.parse(saved) : [];
+        } catch {
+            return [];
+        }
     });
-    const timerRef = useRef(null);
+    const [lastTimerSeconds, setLastTimerSeconds] = useState(() => {
+        const saved = Number(localStorage.getItem(LAST_DURATION_KEY));
+        return Number.isFinite(saved) && saved > 0 ? saved : 0;
+    });
+
+    const intervalRef = useRef(null);
+    const timerEndMsRef = useRef(null);
+    const stopwatchStartMsRef = useRef(null);
+    const stopwatchAccumulatedMsRef = useRef(0);
 
     const [customMins, setCustomMins] = useState('');
     const [customSecs, setCustomSecs] = useState('');
 
-    useEffect(() => {
-        localStorage.setItem('timer-sound', soundEnabled);
-    }, [soundEnabled]);
+    const formatTime = useCallback((seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }, []);
 
-
-    useEffect(() => {
-        if (isActive) {
-            timerRef.current = setInterval(() => {
-                setTime((t) => {
-                    if (mode === 'timer') {
-                        if (t <= 1) {
-                            handleFinish();
-                            return 0;
-                        }
-                        return t - 1;
-                    }
-                    return t + 1;
-                });
-            }, 1000);
-        } else {
-            clearInterval(timerRef.current);
-        }
-        return () => clearInterval(timerRef.current);
-    }, [isActive, mode]);
-
-    const handleFinish = () => {
+    const handleFinish = useCallback(() => {
         setIsActive(false);
+        setTime(0);
+        timerEndMsRef.current = null;
+
+        if ('vibrate' in navigator) {
+            navigator.vibrate([300, 150, 300]);
+        }
 
         if (soundEnabled) {
             try {
@@ -63,29 +66,121 @@ const RestTimer = () => {
                 console.log('Audio not supported', e);
             }
         }
-    };
+    }, [soundEnabled]);
 
-    const formatTime = (s) => {
-        const mins = Math.floor(s / 60);
-        const secs = s % 60;
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
+    const syncFromClock = useCallback(() => {
+        if (!isActive) {
+            return;
+        }
 
-    const startTimer = (seconds) => {
+        if (mode === 'timer') {
+            if (!timerEndMsRef.current) {
+                return;
+            }
+
+            const remainingMs = timerEndMsRef.current - Date.now();
+            if (remainingMs <= 0) {
+                handleFinish();
+                return;
+            }
+
+            setTime(Math.ceil(remainingMs / 1000));
+            return;
+        }
+
+        const startedAt = stopwatchStartMsRef.current ?? Date.now();
+        const elapsedMs = stopwatchAccumulatedMsRef.current + (Date.now() - startedAt);
+        setTime(Math.floor(elapsedMs / 1000));
+    }, [isActive, mode, handleFinish]);
+
+    const startTimer = useCallback((seconds) => {
+        const safeSeconds = Math.max(1, Math.floor(seconds));
+        const endMs = Date.now() + safeSeconds * 1000;
+
         setMode('timer');
-        setTime(seconds);
+        setTime(safeSeconds);
         setIsActive(true);
-    };
+        timerEndMsRef.current = endMs;
+        stopwatchStartMsRef.current = null;
+        stopwatchAccumulatedMsRef.current = 0;
+        setLastTimerSeconds(safeSeconds);
+        localStorage.setItem(LAST_DURATION_KEY, String(safeSeconds));
+    }, []);
+
+    const startStopwatch = useCallback(() => {
+        if (mode !== 'stopwatch') {
+            stopwatchAccumulatedMsRef.current = 0;
+            setTime(0);
+        } else {
+            stopwatchAccumulatedMsRef.current = Math.max(0, time) * 1000;
+        }
+
+        timerEndMsRef.current = null;
+        stopwatchStartMsRef.current = Date.now();
+        setMode('stopwatch');
+        setIsActive(true);
+    }, [mode, time]);
+
+    const handleStart = useCallback(() => {
+        if (isActive) {
+            return;
+        }
+
+        if (mode === 'timer') {
+            if (time > 0) {
+                timerEndMsRef.current = Date.now() + time * 1000;
+                setIsActive(true);
+                return;
+            }
+
+            // If countdown reached zero, Start should begin stopwatch mode.
+            startStopwatch();
+            return;
+        }
+
+        startStopwatch();
+    }, [isActive, mode, time, startStopwatch]);
+
+    const pause = useCallback(() => {
+        if (!isActive) {
+            return;
+        }
+
+        if (mode === 'timer' && timerEndMsRef.current) {
+            const remaining = Math.max(0, Math.ceil((timerEndMsRef.current - Date.now()) / 1000));
+            timerEndMsRef.current = null;
+            setTime(remaining);
+        }
+
+        if (mode === 'stopwatch' && stopwatchStartMsRef.current) {
+            stopwatchAccumulatedMsRef.current += Date.now() - stopwatchStartMsRef.current;
+            stopwatchStartMsRef.current = null;
+            setTime(Math.floor(stopwatchAccumulatedMsRef.current / 1000));
+        }
+
+        setIsActive(false);
+    }, [isActive, mode]);
+
+    const reset = useCallback(() => {
+        setIsActive(false);
+        setTime(0);
+        setMode('stopwatch');
+        timerEndMsRef.current = null;
+        stopwatchStartMsRef.current = null;
+        stopwatchAccumulatedMsRef.current = 0;
+    }, []);
 
     const handleCustomSet = () => {
-        const totalSeconds = (Number(customMins) * 60) + Number(customSecs);
+        const mins = Math.max(0, Number(customMins) || 0);
+        const secs = Math.max(0, Number(customSecs) || 0);
+        const totalSeconds = Math.floor((mins * 60) + secs);
+
         if (totalSeconds > 0) {
             startTimer(totalSeconds);
 
-            // Update Recent Times
             setRecentTimes(prev => {
                 const newRecents = [totalSeconds, ...prev.filter(t => t !== totalSeconds)].slice(0, 3);
-                localStorage.setItem('timer-recents', JSON.stringify(newRecents));
+                localStorage.setItem(RECENTS_KEY, JSON.stringify(newRecents));
                 return newRecents;
             });
 
@@ -94,16 +189,99 @@ const RestTimer = () => {
         }
     };
 
-    const reset = () => {
-        setIsActive(false);
-        setTime(0);
-        setMode('stopwatch');
-    };
+    useEffect(() => {
+        localStorage.setItem(SOUND_KEY, soundEnabled);
+    }, [soundEnabled]);
+
+    useEffect(() => {
+        const savedSession = localStorage.getItem(SESSION_KEY);
+        if (!savedSession) {
+            return;
+        }
+
+        try {
+            const session = JSON.parse(savedSession);
+
+            if (session.mode === 'timer') {
+                setMode('timer');
+
+                if (session.isActive && Number.isFinite(session.timerEndMs)) {
+                    const remaining = Math.max(0, Math.ceil((session.timerEndMs - Date.now()) / 1000));
+                    if (remaining > 0) {
+                        timerEndMsRef.current = session.timerEndMs;
+                        setTime(remaining);
+                        setIsActive(true);
+                    } else {
+                        setTime(0);
+                        setIsActive(false);
+                    }
+                } else {
+                    const savedTime = Math.max(0, Number(session.time) || 0);
+                    setTime(savedTime);
+                    setIsActive(false);
+                }
+                return;
+            }
+
+            setMode('stopwatch');
+            const savedTime = Math.max(0, Number(session.time) || 0);
+            const savedAccumulatedMs = Number(session.stopwatchAccumulatedMs);
+            stopwatchAccumulatedMsRef.current = Number.isFinite(savedAccumulatedMs)
+                ? Math.max(0, savedAccumulatedMs)
+                : savedTime * 1000;
+
+            if (session.isActive && Number.isFinite(session.stopwatchStartMs)) {
+                stopwatchStartMsRef.current = session.stopwatchStartMs;
+                const elapsedMs = stopwatchAccumulatedMsRef.current + (Date.now() - session.stopwatchStartMs);
+                setTime(Math.floor(elapsedMs / 1000));
+                setIsActive(true);
+            } else {
+                setTime(savedTime);
+                setIsActive(false);
+                stopwatchStartMsRef.current = null;
+            }
+        } catch (error) {
+            console.log('Failed to restore timer session', error);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (isActive) {
+            syncFromClock();
+            intervalRef.current = setInterval(syncFromClock, 250);
+        } else {
+            clearInterval(intervalRef.current);
+        }
+
+        return () => clearInterval(intervalRef.current);
+    }, [isActive, syncFromClock]);
+
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                syncFromClock();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [syncFromClock]);
+
+    useEffect(() => {
+        const session = {
+            mode,
+            isActive,
+            time,
+            timerEndMs: timerEndMsRef.current,
+            stopwatchStartMs: stopwatchStartMsRef.current,
+            stopwatchAccumulatedMs: stopwatchAccumulatedMsRef.current,
+        };
+        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    }, [mode, isActive, time]);
 
     return (
         <div className="fade-in">
             <div className="card" style={{ textAlign: 'center', padding: '1.5rem', position: 'relative' }}>
-                {/* Compact Sound Toggle */}
                 <button
                     onClick={() => setSoundEnabled(!soundEnabled)}
                     style={{
@@ -144,13 +322,22 @@ const RestTimer = () => {
                     {formatTime(time)}
                 </div>
 
-                <div className="flex-row" style={{ marginTop: '1rem' }}>
+                <div className="flex-row" style={{ marginTop: '1rem', flexWrap: 'wrap' }}>
                     {!isActive ? (
-                        <button className="btn" style={{ padding: '0.6rem 2rem' }} onClick={() => setIsActive(true)}>Start</button>
+                        <button className="btn" style={{ padding: '0.6rem 2rem' }} onClick={handleStart}>Start</button>
                     ) : (
-                        <button className="btn btn-outline" style={{ borderColor: 'var(--danger)', color: 'var(--danger)', padding: '0.6rem 2rem' }} onClick={() => setIsActive(false)}>Pause</button>
+                        <button className="btn btn-outline" style={{ borderColor: 'var(--danger)', color: 'var(--danger)', padding: '0.6rem 2rem' }} onClick={pause}>Pause</button>
                     )}
                     <button className="btn btn-ghost" onClick={reset}>Reset</button>
+                    {lastTimerSeconds > 0 && (
+                        <button
+                            className="btn btn-ghost"
+                            style={{ background: '#111', border: '1px solid #222' }}
+                            onClick={() => startTimer(lastTimerSeconds)}
+                        >
+                            Repeat {formatTime(lastTimerSeconds)}
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -190,7 +377,7 @@ const RestTimer = () => {
                     }}
                     onClick={handleCustomSet}
                 >
-                    {customMins || customSecs ? 'START TIMER ▶' : 'Set Custom duration'}
+                    {customMins || customSecs ? 'START TIMER' : 'Set Custom duration'}
                 </button>
 
                 {recentTimes.length > 0 && (

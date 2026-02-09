@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 const INITIAL_KG_PLATES = [25, 20, 15, 10, 5, 2.5, 1.25];
 const INITIAL_LB_PLATES = [45, 35, 25, 10, 5, 2.5];
@@ -12,7 +12,6 @@ const PlateCalculator = () => {
     const [unit, setUnit] = useState(savedUnit);
     const [barWeight, setBarWeight] = useState(savedUnit === 'kg' ? 20 : 45);
     const [targetWeight, setTargetWeight] = useState(savedUnit === 'kg' ? 60 : 135);
-    const [plates, setPlates] = useState([]);
     const [activeKgPlates, setActiveKgPlates] = useState(savedKgPlates);
     const [activeLbPlates, setActiveLbPlates] = useState(savedLbPlates);
     const [showSettings, setShowSettings] = useState(false);
@@ -29,15 +28,10 @@ const PlateCalculator = () => {
         localStorage.setItem('gym-lb-plates', JSON.stringify(activeLbPlates));
     }, [activeLbPlates]);
 
-    useEffect(() => {
-        calculatePlates();
-    }, [targetWeight, barWeight, unit, activeKgPlates, activeLbPlates]);
-
-    const calculatePlates = () => {
+    const plates = useMemo(() => {
         let weightPerSide = (targetWeight - barWeight) / 2;
         if (weightPerSide < 0) {
-            setPlates([]);
-            return;
+            return [];
         }
 
         const availablePlates = unit === 'kg' ? activeKgPlates : activeLbPlates;
@@ -53,8 +47,8 @@ const PlateCalculator = () => {
                 remaining = Math.round((remaining - plate) * 100) / 100; // Fix floating point
             }
         }
-        setPlates(result);
-    };
+        return result;
+    }, [targetWeight, barWeight, unit, activeKgPlates, activeLbPlates]);
 
     const togglePlate = (plate) => {
         if (unit === 'kg') {
