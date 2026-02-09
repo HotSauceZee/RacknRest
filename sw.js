@@ -1,9 +1,11 @@
-const CACHE_NAME = 'plate-timer-v6';
+const CACHE_NAME = 'plate-timer-v7';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './vite.svg'
+  './vite.svg',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -29,9 +31,25 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  const requestUrl = new URL(event.request.url);
+  if (requestUrl.origin !== self.location.origin) {
+    return;
+  }
+
+  // Network-first keeps deployed updates fresh; cache is fallback for offline use.
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        const responseToCache = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseToCache);
+        });
+        return networkResponse;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
